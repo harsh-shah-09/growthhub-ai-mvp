@@ -1,0 +1,11 @@
+# Python / Backend
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# React Native / Frontend
+frontend/node_modules/
+.expo/
+
+# Security (Never commit your secrets!)
+.env
