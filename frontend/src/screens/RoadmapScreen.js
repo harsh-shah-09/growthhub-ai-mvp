@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Linking } from 'react-native';
 
 const downloadPDF = (roadmapId) => {
-    const url = `http://192.168.1.X:8000/api/v1/roadmaps/${roadmapId}/export-pdf`;
+    const url = `http://192.168.29.239:8000/api/v1/roadmaps/${roadmapId}/export-pdf`;
     Linking.openURL(url);
 };
 

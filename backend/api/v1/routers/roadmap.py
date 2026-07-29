@@ -17,7 +17,7 @@ def export_roadmap_pdf(
 ):
     roadmap = db.query(Roadmap).filter(Roadmap.id == roadmap_id, Roadmap.user_id == current_user.id).first()
     if not roadmap:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, status_text="Roadmap not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Roadmap not found")
         
     pdf_bytes = generate_roadmap_pdf(
         target_career=roadmap.target_career,
