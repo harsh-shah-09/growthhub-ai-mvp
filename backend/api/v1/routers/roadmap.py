@@ -6,8 +6,31 @@ from models.roadmap import Roadmap
 from api.v1.dependencies import get_current_user
 from models.user import User
 from services.pdf_generator import generate_roadmap_pdf
+from pydantic import BaseModel
 
 router = APIRouter()
+
+class RoadmapCreate(BaseModel):
+    target_career: str
+    degree_program: str
+    description: str
+
+@router.post("/")
+def create_roadmap(
+    roadmap_in: RoadmapCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    new_roadmap = Roadmap(
+        user_id=current_user.id,
+        target_career=roadmap_in.target_career,
+        degree_program=roadmap_in.degree_program,
+        description=roadmap_in.description
+    )
+    db.add(new_roadmap)
+    db.commit()
+    db.refresh(new_roadmap)
+    return {"id": new_roadmap.id, "target_career": new_roadmap.target_career}
 
 @router.get("/{roadmap_id}/export-pdf")
 def export_roadmap_pdf(
