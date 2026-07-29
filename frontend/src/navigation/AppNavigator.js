@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux';
 
 import LoginScreen from '../screens/LoginScreen';
 import DashboardScreen from '../screens/DashboardScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,7 +21,10 @@ export default function AppNavigator() {
           <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         ) : (
           // User is signed in
-          <Stack.Screen name="Dashboard" component={DashboardScreen} />
+          <>
+            <Stack.Screen name="Dashboard" component={DashboardScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Preferences' }} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
