@@ -1,38 +1,32 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from typing import List
-
 from core.database import get_db
-from schemas.roadmap import RoadmapCreate, RoadmapResponse
 from models.roadmap import Roadmap
 from api.v1.dependencies import get_current_user
 from models.user import User
+from services.pdf_generator import generate_roadmap_pdf
 
 router = APIRouter()
 
-@router.post("/", response_model=RoadmapResponse, status_code=status.HTTP_201_CREATED)
-def create_roadmap(
-    roadmap: RoadmapCreate, 
-    db: Session = Depends(get_db), 
+@router.get("/{roadmap_id}/export-pdf")
+def export_roadmap_pdf(
+    roadmap_id: int,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Save a new higher education and career roadmap for the logged-in student."""
-    db_roadmap = Roadmap(
-        user_id=current_user.id,
+    roadmap = db.query(Roadmap).filter(Roadmap.id == roadmap_id, Roadmap.user_id == current_user.id).first()
+    if not roadmap:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, status_text="Roadmap not found")
+        
+    pdf_bytes = generate_roadmap_pdf(
         target_career=roadmap.target_career,
-        university=roadmap.university,
-        degree_program=roadmap.degree_program,
+        degree_program=roadmap.degree_program or "B.Tech Engineering",
         description=roadmap.description
     )
-    db.add(db_roadmap)
-    db.commit()
-    db.refresh(db_roadmap)
-    return db_roadmap
-
-@router.get("/", response_model=List[RoadmapResponse], status_code=status.HTTP_200_OK)
-def get_my_roadmaps(
-    db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_user)
-):
-    """Retrieve all saved roadmaps specifically for the authenticated user."""
-    return db.query(Roadmap).filter(Roadmap.user_id == current_user.id).all()
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=roadmap_{roadmap_id}.pdf"}
+    )
