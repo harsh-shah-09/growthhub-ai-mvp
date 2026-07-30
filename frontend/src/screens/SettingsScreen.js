@@ -1,56 +1,91 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import LoadingOverlay from '../components/LoadingOverlay';
+import { useTheme } from '../context/ThemeContext'; // Import the custom hook
 
 const SettingsScreen = () => {
-  const [darkMode, setDarkMode] = useState(false);
+  // Replace local state with global context
+  const { isDarkMode, toggleTheme } = useTheme();
+  
   const [notifications, setNotifications] = useState(true);
   const [degreeField, setDegreeField] = useState('computer');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleNotificationToggle = (value) => {
+    setNotifications(value);
+    if (value) {
+      Alert.alert("Notifications Enabled", "You will now receive alerts for your academic roadmap.");
+    } else {
+      Alert.alert("Notifications Muted", "You will no longer receive push notifications.");
+    }
+  };
 
   const handleSave = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-    }, 3000);
+      Alert.alert("Success", "Your preferences have been saved!");
+    }, 2000);
+  };
+
+  // Dynamic color palette based on global isDarkMode state
+  const colors = {
+    background: isDarkMode ? '#121212' : '#f4f6f8',
+    card: isDarkMode ? '#1e1e1e' : '#ffffff',
+    text: isDarkMode ? '#ffffff' : '#333333',
+    subText: isDarkMode ? '#aaaaaa' : '#888888',
+    divider: isDarkMode ? '#333333' : '#eeeeee',
+    pickerBg: isDarkMode ? '#2c2c2c' : '#f9f9f9',
+    icon: isDarkMode ? '#cccccc' : '#555555'
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>App Preferences</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.header, { color: colors.subText }]}>App Preferences</Text>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
         <View style={styles.row}>
           <View style={styles.iconTextContainer}>
-            <Ionicons name="moon" size={24} color="#555" />
-            <Text style={styles.rowText}>Dark Mode</Text>
+            <Ionicons name="moon" size={24} color={colors.icon} />
+            <Text style={[styles.rowText, { color: colors.text }]}>Dark Mode</Text>
           </View>
-          <Switch value={darkMode} onValueChange={setDarkMode} />
+          <Switch 
+            value={isDarkMode} 
+            onValueChange={toggleTheme} 
+            trackColor={{ false: "#767577", true: "#0056b3" }}
+            thumbColor={"#ffffff"}
+          />
         </View>
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.divider }]} />
         <View style={styles.row}>
           <View style={styles.iconTextContainer}>
-            <Ionicons name="notifications" size={24} color="#555" />
-            <Text style={styles.rowText}>Push Notifications</Text>
+            <Ionicons name="notifications" size={24} color={colors.icon} />
+            <Text style={[styles.rowText, { color: colors.text }]}>Push Notifications</Text>
           </View>
-          <Switch value={notifications} onValueChange={setNotifications} />
+          <Switch 
+            value={notifications} 
+            onValueChange={handleNotificationToggle}
+            trackColor={{ false: "#767577", true: "#0056b3" }}
+            thumbColor={"#ffffff"}
+          />
         </View>
       </View>
 
-      <Text style={styles.header}>Academic Profile</Text>
+      <Text style={[styles.header, { color: colors.subText }]}>Academic Profile</Text>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
         <View style={styles.pickerContainer}>
           <View style={styles.iconTextContainer}>
-            <FontAwesome5 name="user-graduate" size={20} color="#555" />
-            <Text style={styles.rowText}>B.Tech / M.Tech Specialization</Text>
+            <FontAwesome5 name="user-graduate" size={20} color={colors.icon} />
+            <Text style={[styles.rowText, { color: colors.text }]}>B.Tech / M.Tech Specialization</Text>
           </View>
           <Picker
             selectedValue={degreeField}
             onValueChange={(itemValue) => setDegreeField(itemValue)}
-            style={styles.picker}
+            style={[styles.picker, { backgroundColor: colors.pickerBg, color: colors.text }]}
+            dropdownIconColor={colors.icon}
           >
             <Picker.Item label="Computer Engineering" value="computer" />
             <Picker.Item label="Information Technology (IT)" value="it" />
@@ -78,20 +113,17 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f6f8',
     padding: 20,
   },
   header: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#888',
     textTransform: 'uppercase',
     marginTop: 20,
     marginBottom: 10,
     marginLeft: 10,
   },
   section: {
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -103,7 +135,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#eeeeee',
     marginLeft: 50,
   },
   iconTextContainer: {
@@ -112,7 +143,6 @@ const styles = StyleSheet.create({
   },
   rowText: {
     fontSize: 16,
-    color: '#333',
     marginLeft: 12,
   },
   pickerContainer: {
@@ -120,7 +150,6 @@ const styles = StyleSheet.create({
   },
   picker: {
     marginTop: 10,
-    backgroundColor: '#f9f9f9',
     borderRadius: 8,
   },
   saveButton: {

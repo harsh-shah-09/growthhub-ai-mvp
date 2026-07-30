@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeProvider } from './src/context/ThemeContext';
 
 // Import your screens
 import ChatScreen from './src/screens/ChatScreen';
@@ -24,11 +25,12 @@ export default function App() {
 
   // If the token exists, grant access to the main application
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <Tab.Navigator 
-          screenOptions={{
-            headerStyle: { backgroundColor: '#007bff' },
+    <ThemeProvider>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <Tab.Navigator 
+            screenOptions={{
+              headerStyle: { backgroundColor: '#007bff' },
             headerTintColor: '#fff',
             tabBarActiveTintColor: '#007bff',
             tabBarInactiveTintColor: 'gray',
@@ -59,5 +61,6 @@ export default function App() {
         </Tab.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
+    </ThemeProvider>  
   );
 }

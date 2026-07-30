@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import LoginScreen from '../screens/LoginScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import { ThemeProvider } from './src/context/ThemeContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -14,6 +15,7 @@ export default function AppNavigator() {
   const token = useSelector((state) => state.auth.token);
 
   return (
+    <ThemeProvider>
     <NavigationContainer>
       <Stack.Navigator>
         {token == null ? (
@@ -28,5 +30,6 @@ export default function AppNavigator() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </ThemeProvider>  
   );
 }
