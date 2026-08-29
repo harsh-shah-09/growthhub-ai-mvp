@@ -1,100 +1,128 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  ActivityIndicator, 
-  Alert,
-  KeyboardAvoidingView,
-  Platform
-} from 'react-native';
-import axios from 'axios';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import LoadingOverlay from '../components/LoadingOverlay';
 
-const LOGIN_API = 'http://192.168.29.239:8000/api/v1/auth/login';
+export default function LoginScreen() {
+  const { login } = useAuth();
+  const { isDarkMode } = useTheme();
 
-export default function LoginScreen({ setToken }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const colors = {
+    background: isDarkMode ? '#121212' : '#f4f6f8',
+    card: isDarkMode ? '#1e1e1e' : '#ffffff',
+    text: isDarkMode ? '#ffffff' : '#333333',
+    subText: isDarkMode ? '#aaaaaa' : '#777777',
+    inputBg: isDarkMode ? '#2a2a2a' : '#ffffff',
+    border: isDarkMode ? '#333333' : '#dddddd',
+    button: isDarkMode ? '#0056b3' : '#0056b3',
+  };
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both email and password.');
+    if (!email || !password) {
+      Alert.alert('Validation Error', 'Please fill in both email and password.');
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
+
     try {
-      // FastAPI's OAuth2PasswordRequestForm strictly requires form-urlencoded data
-      const formData = new URLSearchParams();
-      formData.append('username', email); // FastAPI maps 'email' to 'username' under the hood
-      formData.append('password', password);
+      // Replace with your backend API authentication call when ready:
+      // const res = await axios.post('http://192.168.29.239:8000/api/v1/auth/login', { email, password });
+      // await login(res.data.token);
 
-      const response = await axios.post(LOGIN_API, formData.toString(), {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
-
-      // Pass the JWT token up to the App.js state
-      setToken(response.data.access_token);
+      // Temporary local token simulation:
+      setTimeout(async () => {
+        await login('sample-jwt-token-growthhub');
+        setIsLoading(false);
+      }, 1000);
     } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert(
-        'Login Failed', 
-        'Could not authenticate. Please check your credentials and ensure the server is running.'
-      );
-    } finally {
-      setLoading(false);
+      setIsLoading(false);
+      Alert.alert('Login Failed', 'Invalid credentials or server unavailable.');
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={styles.container}
-    >
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>GrowthHub AI</Text>
-        <Text style={styles.subtitle}>Sign in to accelerate your career</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
+        <Text style={[styles.subtitle, { color: colors.subText }]}>Sign in to access your roadmaps</Text>
 
         <TextInput
-          style={styles.input}
-          placeholder="Email Address"
+          style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+          placeholder="Email address"
+          placeholderTextColor={colors.subText}
           value={email}
           onChangeText={setEmail}
-          keyboardType="email-address"
           autoCapitalize="none"
+          keyboardType="email-address"
         />
-        
+
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
           placeholder="Password"
+          placeholderTextColor={colors.subText}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Login</Text>
-          )}
+        <TouchableOpacity style={[styles.button, { backgroundColor: colors.button }]} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Sign In</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+
+      {isLoading && <LoadingOverlay message="Authenticating..." />}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f5', justifyContent: 'center' },
-  formContainer: { padding: 25, backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 12, elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#007bff', textAlign: 'center', marginBottom: 5 },
-  subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 30 },
-  input: { backgroundColor: '#f9f9f9', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 15, fontSize: 16, marginBottom: 15 },
-  button: { backgroundColor: '#007bff', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 18 }
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  card: {
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 14,
+    marginBottom: 24,
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    fontSize: 16,
+  },
+  button: {
+    height: 50,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

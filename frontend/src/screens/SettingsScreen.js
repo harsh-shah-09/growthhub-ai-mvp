@@ -4,6 +4,10 @@ import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useTheme } from '../context/ThemeContext'; // Import the custom hook
+import { useAuth } from '../context/AuthContext';
+
+const { logout } = useAuth();
+
 
 const SettingsScreen = () => {
   // Replace local state with global context
@@ -100,10 +104,10 @@ const SettingsScreen = () => {
         <Text style={styles.buttonText}>Save Preferences</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.logoutButton}>
+      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
         <Ionicons name="log-out-outline" size={20} color="#ffffff" />
         <Text style={styles.buttonText}>Log Out</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> 
 
       {isLoading && <LoadingOverlay message="Saving Preferences..." />}
     </View>

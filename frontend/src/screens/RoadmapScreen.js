@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import axios from 'axios';
-import { Linking } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-
-const downloadPDF = (roadmapId) => {
-  const url = `http://192.168.29.239:8000/api/v1/roadmaps/${roadmapId}/export-pdf`;
-  Linking.openURL(url);
-};
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 const ROADMAP_API = 'http://192.168.29.239:8000/api/v1/roadmaps/';
 
 export default function RoadmapScreen({ token }) {
   const { isDarkMode } = useTheme();
   
-  // Dynamic color palette based on global isDarkMode state
   const colors = {
     background: isDarkMode ? '#121212' : '#f0f2f5',
-    card: isDarkMode ? '#1e1e1e' : '#ffffff',         // The background of the roadmap card
-    text: isDarkMode ? '#ffffff' : '#333333',         // The main text color
-    subText: isDarkMode ? '#aaaaaa' : '#666666',      // The secondary text color
-    borderColor: isDarkMode ? '#333333' : '#e0e0e0',  // The border of the card
-    accent: isDarkMode ? '#66b3ff' : '#0056b3',       // The title highlight color
+    card: isDarkMode ? '#1e1e1e' : '#ffffff',
+    text: isDarkMode ? '#ffffff' : '#333333',
+    subText: isDarkMode ? '#aaaaaa' : '#666666',
+    borderColor: isDarkMode ? '#333333' : '#e0e0e0',
+    accent: isDarkMode ? '#66b3ff' : '#0056b3',
+    button: isDarkMode ? '#333333' : '#e6f0fa', // Button background color
   };
 
   const [roadmaps, setRoadmaps] = useState([]);
@@ -39,11 +35,33 @@ export default function RoadmapScreen({ token }) {
     }
   };
 
+  // NEW: Handle native PDF download and sharing
+  const handleDownloadPDF = async (roadmapId) => {
+    try {
+      const url = `http://192.168.29.239:8000/api/v1/roadmaps/${roadmapId}/export-pdf`;
+      const fileUri = `${FileSystem.documentDirectory}Roadmap_${roadmapId}.pdf`;
+
+      // Download directly to device storage, passing the secure token
+      const { uri } = await FileSystem.downloadAsync(url, fileUri, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Trigger the native iOS/Android share sheet
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri);
+      } else {
+        Alert.alert('Download Complete', `File saved to: ${uri}`);
+      }
+    } catch (error) {
+      console.error('Error downloading PDF', error);
+      Alert.alert('Download Failed', 'Could not save the PDF.');
+    }
+  };
+
   const renderItem = ({ item }) => (
-    // Apply dynamic card background here
     <View style={[styles.roadmapCard, { backgroundColor: colors.card }]}>
       
-      {/* Apply dynamic border color here */}
       <View style={[styles.cardHeader, { borderBottomColor: colors.borderColor }]}>
         <Text style={[styles.targetCareer, { color: colors.accent }]}>
           {item.target_career}
@@ -55,16 +73,24 @@ export default function RoadmapScreen({ token }) {
         )}
       </View>
       
-      {/* Apply dynamic text colors here */}
       <Text style={[styles.description, { color: colors.text }]}>
         {item.description}
       </Text>
+      
+      {/* NEW: Native Download Button */}
+      <TouchableOpacity 
+        style={[styles.downloadButton, { backgroundColor: colors.button }]} 
+        onPress={() => handleDownloadPDF(item.id)}
+      >
+        <Text style={[styles.downloadButtonText, { color: colors.accent }]}>
+          Export as PDF
+        </Text>
+      </TouchableOpacity>
       
     </View>
   );
 
   return (
-    // Apply dynamic screen background here
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>My Career Roadmaps</Text>
       <FlatList
@@ -82,8 +108,6 @@ export default function RoadmapScreen({ token }) {
   );
 }
 
-// I removed the hardcoded colors from the stylesheet below 
-// since they are now being handled dynamically by the arrays above.
 const styles = StyleSheet.create({
   container: { 
     flex: 1 
@@ -127,5 +151,16 @@ const styles = StyleSheet.create({
     textAlign: 'center', 
     marginTop: 50, 
     fontSize: 16 
-  }
+  },
+  // NEW: Button Styles
+  downloadButton: {
+    marginTop: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  downloadButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });

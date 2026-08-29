@@ -1,66 +1,77 @@
-import React, { useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+ import React from 'react';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ThemeProvider } from './src/context/ThemeContext';
 
-// Import your screens
-import ChatScreen from './src/screens/ChatScreen';
-import PortfolioScreen from './src/screens/PortfolioScreen';
-import RoadmapScreen from './src/screens/RoadmapScreen';
-import LoginScreen from './src/screens/LoginScreen'; // <-- Now actively imported
+// Screen imports
 import SettingsScreen from './src/screens/SettingsScreen';
+import RoadmapScreen from './src/screens/RoadmapScreen';
+import LoginScreen from './src/screens/LoginScreen';
 
+// Context & UI components
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import LoadingOverlay from './src/components/LoadingOverlay';
 
 const Tab = createBottomTabNavigator();
 
-export default function App() {
-  const [token, setToken] = useState(null);
+const RootNavigator = () => {
+  const { isDarkMode } = useTheme();
+  const { userToken, isLoading } = useAuth();
 
-  // Dynamic Routing: If no token exists, lock the user out and show Login
-  if (!token) {
-    return <LoginScreen setToken={setToken} />;
+  // Show a loading screen while SecureStore checks for an existing saved session
+  if (isLoading) {
+    return <LoadingOverlay message="Loading GrowthHub..." />;
   }
 
-  // If the token exists, grant access to the main application
   return (
-    <ThemeProvider>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <Tab.Navigator 
-            screenOptions={{
-              headerStyle: { backgroundColor: '#007bff' },
-            headerTintColor: '#fff',
-            tabBarActiveTintColor: '#007bff',
+    <NavigationContainer theme={isDarkMode ? DarkTheme : DefaultTheme}>
+      {userToken === null ? (
+        // Render Login Flow when unauthenticated
+        <LoginScreen />
+      ) : (
+        // Render Main App Tabs when authenticated
+        <Tab.Navigator
+          screenOptions={({ route }) => ({
+            tabBarIcon: ({ focused, color, size }) => {
+              let iconName;
+
+              if (route.name === 'Home') {
+                iconName = focused ? 'home' : 'home-outline';
+              } else if (route.name === 'Roadmaps') {
+                iconName = focused ? 'map' : 'map-outline';
+              } else if (route.name === 'Settings') {
+                iconName = focused ? 'settings' : 'settings-outline';
+              }
+
+              return <Ionicons name={iconName} size={size} color={color} />;
+            },
+            tabBarActiveTintColor: isDarkMode ? '#66b3ff' : '#0056b3',
             tabBarInactiveTintColor: 'gray',
-          }}
+            tabBarStyle: {
+              backgroundColor: isDarkMode ? '#1e1e1e' : '#ffffff',
+              borderTopColor: isDarkMode ? '#333333' : '#eeeeee',
+            },
+            headerStyle: {
+              backgroundColor: isDarkMode ? '#1e1e1e' : '#ffffff',
+            },
+            headerTintColor: isDarkMode ? '#ffffff' : '#000000',
+          })}
         >
-          <Tab.Screen 
-            name="AI Counselor" 
-            children={() => <ChatScreen token={token} />} 
-          />
-          <Tab.Screen 
-            name="Portfolio" 
-            children={() => <PortfolioScreen token={token} />} 
-          />
-          <Tab.Screen 
-            name="Roadmaps" 
-            children={() => <RoadmapScreen token={token} />} 
-          />
-          <Tab.Screen 
-            name="Settings" 
-            component={SettingsScreen} 
-            options={{
-            tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} 
-          />
-        ),
-        }}
-          />
+          <Tab.Screen name="Roadmaps" component={RoadmapScreen} />
+          <Tab.Screen name="Settings" component={SettingsScreen} />
         </Tab.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
-    </ThemeProvider>  
+      )}
+    </NavigationContainer>
+  );
+};
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <RootNavigator />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
