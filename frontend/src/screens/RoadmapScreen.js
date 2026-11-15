@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import axios from 'axios';
+import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import axiosClient from '../api/axiosClient';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext'; // ✅ Fixed: token from context, not props
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
-const ROADMAP_API = 'http://192.168.29.239:8000/api/v1/roadmaps/';
+// ✅ Fixed: BASE_URL centralised in axiosClient — no hardcoded IP here
+const ROADMAP_PATH = '/roadmaps/';
 
-export default function RoadmapScreen({ token }) {
+export default function RoadmapScreen() {
+  const { userToken } = useAuth();
   const { isDarkMode } = useTheme();
-  
+
   const colors = {
     background: isDarkMode ? '#121212' : '#f0f2f5',
     card: isDarkMode ? '#1e1e1e' : '#ffffff',
@@ -17,36 +20,41 @@ export default function RoadmapScreen({ token }) {
     subText: isDarkMode ? '#aaaaaa' : '#666666',
     borderColor: isDarkMode ? '#333333' : '#e0e0e0',
     accent: isDarkMode ? '#66b3ff' : '#0056b3',
-    button: isDarkMode ? '#333333' : '#e6f0fa', // Button background color
+    button: isDarkMode ? '#333333' : '#e6f0fa',
   };
 
   const [roadmaps, setRoadmaps] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchRoadmaps();
   }, []);
 
   const fetchRoadmaps = async () => {
+    setLoading(true);
     try {
-      const response = await axios.get(ROADMAP_API, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axiosClient.get(ROADMAP_PATH, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
       setRoadmaps(response.data);
     } catch (error) {
       console.error('Error fetching roadmaps', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // NEW: Handle native PDF download and sharing
   const handleDownloadPDF = async (roadmapId) => {
     try {
-      const url = `http://192.168.29.239:8000/api/v1/roadmaps/${roadmapId}/export-pdf`;
+      // Build the URL using the axiosClient base so we stay consistent
+      const baseUrl = axiosClient.defaults.baseURL;
+      const url = `${baseUrl}/roadmaps/${roadmapId}/export-pdf`;
       const fileUri = `${FileSystem.documentDirectory}Roadmap_${roadmapId}.pdf`;
 
-      // Download directly to device storage, passing the secure token
       const { uri } = await FileSystem.downloadAsync(url, fileUri, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${userToken}` },
       });
 
-      // Trigger the native iOS/Android share sheet
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
         await Sharing.shareAsync(uri);
@@ -61,7 +69,6 @@ export default function RoadmapScreen({ token }) {
 
   const renderItem = ({ item }) => (
     <View style={[styles.roadmapCard, { backgroundColor: colors.card }]}>
-      
       <View style={[styles.cardHeader, { borderBottomColor: colors.borderColor }]}>
         <Text style={[styles.targetCareer, { color: colors.accent }]}>
           {item.target_career}
@@ -72,23 +79,29 @@ export default function RoadmapScreen({ token }) {
           </Text>
         )}
       </View>
-      
+
       <Text style={[styles.description, { color: colors.text }]}>
         {item.description}
       </Text>
-      
-      {/* NEW: Native Download Button */}
-      <TouchableOpacity 
-        style={[styles.downloadButton, { backgroundColor: colors.button }]} 
+
+      <TouchableOpacity
+        style={[styles.downloadButton, { backgroundColor: colors.button }]}
         onPress={() => handleDownloadPDF(item.id)}
       >
         <Text style={[styles.downloadButtonText, { color: colors.accent }]}>
           Export as PDF
         </Text>
       </TouchableOpacity>
-      
     </View>
   );
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -100,7 +113,7 @@ export default function RoadmapScreen({ token }) {
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: colors.subText }]}>
-            No roadmaps generated yet.
+            No roadmaps generated yet. Chat with the AI to create one!
           </Text>
         }
       />
@@ -109,58 +122,18 @@ export default function RoadmapScreen({ token }) {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1 
+  container: { flex: 1 },
+  title: { fontSize: 22, fontWeight: 'bold', padding: 20 },
+  listContainer: { paddingHorizontal: 20, paddingBottom: 20 },
+  roadmapCard: {
+    borderRadius: 12, padding: 20, marginBottom: 15,
+    elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5,
   },
-  title: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    padding: 20 
-  },
-  listContainer: { 
-    paddingHorizontal: 20, 
-    paddingBottom: 20 
-  },
-  roadmapCard: { 
-    borderRadius: 12, 
-    padding: 20, 
-    marginBottom: 15, 
-    elevation: 4, 
-    shadowColor: '#000', 
-    shadowOpacity: 0.1, 
-    shadowRadius: 5 
-  },
-  cardHeader: { 
-    borderBottomWidth: 1, 
-    paddingBottom: 10, 
-    marginBottom: 10 
-  },
-  targetCareer: { 
-    fontSize: 20, 
-    fontWeight: 'bold' 
-  },
-  degree: { 
-    fontSize: 14, 
-    marginTop: 5 
-  },
-  description: { 
-    fontSize: 15, 
-    lineHeight: 22 
-  },
-  emptyText: { 
-    textAlign: 'center', 
-    marginTop: 50, 
-    fontSize: 16 
-  },
-  // NEW: Button Styles
-  downloadButton: {
-    marginTop: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  downloadButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  cardHeader: { borderBottomWidth: 1, paddingBottom: 10, marginBottom: 10 },
+  targetCareer: { fontSize: 20, fontWeight: 'bold' },
+  degree: { fontSize: 14, marginTop: 5 },
+  description: { fontSize: 15, lineHeight: 22 },
+  emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16 },
+  downloadButton: { marginTop: 15, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  downloadButtonText: { fontSize: 14, fontWeight: 'bold' },
 });

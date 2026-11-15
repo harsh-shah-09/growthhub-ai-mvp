@@ -2,11 +2,16 @@
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { Provider } from 'react-redux';
+import { store } from './src/store/index';
 
 // Screen imports
 import SettingsScreen from './src/screens/SettingsScreen';
 import RoadmapScreen from './src/screens/RoadmapScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
+import ChatScreen from './src/screens/ChatScreen';
+import PortfolioScreen from './src/screens/PortfolioScreen';
 
 // Context & UI components
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -27,7 +32,7 @@ const RootNavigator = () => {
   return (
     <NavigationContainer theme={isDarkMode ? DarkTheme : DefaultTheme}>
       {userToken === null ? (
-        // Render Login Flow when unauthenticated
+        // Render Login screen when unauthenticated
         <LoginScreen />
       ) : (
         // Render Main App Tabs when authenticated
@@ -40,6 +45,10 @@ const RootNavigator = () => {
                 iconName = focused ? 'home' : 'home-outline';
               } else if (route.name === 'Roadmaps') {
                 iconName = focused ? 'map' : 'map-outline';
+              } else if (route.name === 'Chat') {
+                iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
+              } else if (route.name === 'Portfolio') {
+                iconName = focused ? 'briefcase' : 'briefcase-outline';
               } else if (route.name === 'Settings') {
                 iconName = focused ? 'settings' : 'settings-outline';
               }
@@ -58,7 +67,10 @@ const RootNavigator = () => {
             headerTintColor: isDarkMode ? '#ffffff' : '#000000',
           })}
         >
+          <Tab.Screen name="Home" component={DashboardScreen} />
           <Tab.Screen name="Roadmaps" component={RoadmapScreen} />
+          <Tab.Screen name="Chat" component={ChatScreen} />
+          <Tab.Screen name="Portfolio" component={PortfolioScreen} />
           <Tab.Screen name="Settings" component={SettingsScreen} />
         </Tab.Navigator>
       )}
@@ -68,10 +80,12 @@ const RootNavigator = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <RootNavigator />
-      </ThemeProvider>
-    </AuthProvider>
+    <Provider store={store}>
+      <AuthProvider>
+        <ThemeProvider>
+          <RootNavigator />
+        </ThemeProvider>
+      </AuthProvider>
+    </Provider>
   );
 }

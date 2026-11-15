@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
-import axios from 'axios';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  FlatList, StyleSheet, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
+} from 'react-native';
+import axiosClient from '../api/axiosClient';
+import { useAuth } from '../context/AuthContext'; // ✅ Fixed: token from context, not props
 
-// Replace 192.168.1.X with your actual IP!
-const API_URL = 'http://192.168.29.239:8000/api/v1/chat/'; // Use your local IP or 10.0.2.2 for Android emulator
-
-export default function ChatScreen({ token }) {
+export default function ChatScreen() {
+  const { userToken } = useAuth();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const flatListRef = useRef(null);
 
   useEffect(() => {
     fetchHistory();
@@ -16,8 +20,8 @@ export default function ChatScreen({ token }) {
 
   const fetchHistory = async () => {
     try {
-      const response = await axios.get(API_URL, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axiosClient.get('/chat/', {
+        headers: { Authorization: `Bearer ${userToken}` },
       });
       setMessages(response.data);
     } catch (error) {
@@ -34,13 +38,16 @@ export default function ChatScreen({ token }) {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        API_URL,
+      const response = await axiosClient.post(
+        '/chat/',
         { sender_role: 'user', message: userMessage.message },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${userToken}` } }
       );
-      // The backend returns an array with both the user message and AI response
-      setMessages((prev) => [...prev.filter(m => m.id !== userMessage.id), ...response.data]);
+      // Backend returns [userMsg, aiMsg] — replace the optimistic entry with real data
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== userMessage.id),
+        ...response.data,
+      ]);
     } catch (error) {
       console.error('Failed to send message', error);
     } finally {
@@ -60,12 +67,17 @@ export default function ChatScreen({ token }) {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
       <FlatList
+        ref={flatListRef}
         data={messages}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
         renderItem={renderItem}
         contentContainerStyle={styles.chatContainer}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
       {loading && <ActivityIndicator size="small" color="#007bff" style={styles.loader} />}
       <View style={styles.inputContainer}>
@@ -93,9 +105,19 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 16 },
   userText: { color: '#fff' },
   aiText: { color: '#000' },
-  inputContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#ddd' },
-  input: { flex: 1, backgroundColor: '#f9f9f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, fontSize: 16 },
-  sendButton: { justifyContent: 'center', alignItems: 'center', marginLeft: 10, paddingHorizontal: 15, backgroundColor: '#007bff', borderRadius: 20 },
+  inputContainer: {
+    flexDirection: 'row', padding: 10,
+    backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#ddd',
+  },
+  input: {
+    flex: 1, backgroundColor: '#f9f9f9', borderRadius: 20,
+    paddingHorizontal: 15, paddingVertical: 10, fontSize: 16,
+  },
+  sendButton: {
+    justifyContent: 'center', alignItems: 'center',
+    marginLeft: 10, paddingHorizontal: 15,
+    backgroundColor: '#007bff', borderRadius: 20,
+  },
   sendButtonText: { color: '#fff', fontWeight: 'bold' },
-  loader: { marginVertical: 10 }
+  loader: { marginVertical: 10 },
 });

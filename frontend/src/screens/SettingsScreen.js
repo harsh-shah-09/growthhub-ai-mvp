@@ -3,16 +3,14 @@ import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-n
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { useTheme } from '../context/ThemeContext'; // Import the custom hook
-import { useAuth } from '../context/AuthContext';
-
-const { logout } = useAuth();
-
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext'; // ✅ Fixed: import only, hook called inside component
 
 const SettingsScreen = () => {
-  // Replace local state with global context
+  // ✅ Fixed: useAuth() called inside the component body, not at module level
+  const { logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
-  
+
   const [notifications, setNotifications] = useState(true);
   const [degreeField, setDegreeField] = useState('computer');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,9 +18,9 @@ const SettingsScreen = () => {
   const handleNotificationToggle = (value) => {
     setNotifications(value);
     if (value) {
-      Alert.alert("Notifications Enabled", "You will now receive alerts for your academic roadmap.");
+      Alert.alert('Notifications Enabled', 'You will now receive alerts for your academic roadmap.');
     } else {
-      Alert.alert("Notifications Muted", "You will no longer receive push notifications.");
+      Alert.alert('Notifications Muted', 'You will no longer receive push notifications.');
     }
   };
 
@@ -30,8 +28,19 @@ const SettingsScreen = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      Alert.alert("Success", "Your preferences have been saved!");
+      Alert.alert('Success', 'Your preferences have been saved!');
     }, 2000);
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log Out', style: 'destructive', onPress: () => logout() },
+      ]
+    );
   };
 
   // Dynamic color palette based on global isDarkMode state
@@ -42,7 +51,7 @@ const SettingsScreen = () => {
     subText: isDarkMode ? '#aaaaaa' : '#888888',
     divider: isDarkMode ? '#333333' : '#eeeeee',
     pickerBg: isDarkMode ? '#2c2c2c' : '#f9f9f9',
-    icon: isDarkMode ? '#cccccc' : '#555555'
+    icon: isDarkMode ? '#cccccc' : '#555555',
   };
 
   return (
@@ -55,11 +64,11 @@ const SettingsScreen = () => {
             <Ionicons name="moon" size={24} color={colors.icon} />
             <Text style={[styles.rowText, { color: colors.text }]}>Dark Mode</Text>
           </View>
-          <Switch 
-            value={isDarkMode} 
-            onValueChange={toggleTheme} 
-            trackColor={{ false: "#767577", true: "#0056b3" }}
-            thumbColor={"#ffffff"}
+          <Switch
+            value={isDarkMode}
+            onValueChange={toggleTheme}
+            trackColor={{ false: '#767577', true: '#0056b3' }}
+            thumbColor={'#ffffff'}
           />
         </View>
         <View style={[styles.divider, { backgroundColor: colors.divider }]} />
@@ -68,11 +77,11 @@ const SettingsScreen = () => {
             <Ionicons name="notifications" size={24} color={colors.icon} />
             <Text style={[styles.rowText, { color: colors.text }]}>Push Notifications</Text>
           </View>
-          <Switch 
-            value={notifications} 
+          <Switch
+            value={notifications}
             onValueChange={handleNotificationToggle}
-            trackColor={{ false: "#767577", true: "#0056b3" }}
-            thumbColor={"#ffffff"}
+            trackColor={{ false: '#767577', true: '#0056b3' }}
+            thumbColor={'#ffffff'}
           />
         </View>
       </View>
@@ -104,10 +113,11 @@ const SettingsScreen = () => {
         <Text style={styles.buttonText}>Save Preferences</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+      {/* ✅ Fixed: calls logout from useAuth() hook inside the component */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={20} color="#ffffff" />
         <Text style={styles.buttonText}>Log Out</Text>
-      </TouchableOpacity> 
+      </TouchableOpacity>
 
       {isLoading && <LoadingOverlay message="Saving Preferences..." />}
     </View>
@@ -179,7 +189,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
-  }
+  },
 });
 
 export default SettingsScreen;
